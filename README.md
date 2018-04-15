@@ -1,7 +1,6 @@
 # Current Plots
 Reward in blue, and Z-position in green:
-![plot1](plot1.png)
-![plot2](plot2.png)
+
 
 # Deep RL Quadcopter Controller
 
