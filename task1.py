@@ -16,47 +16,34 @@ class Task():
         """
         # Simulation
         self.sim = PhysicsSim(init_pose, init_velocities, init_angle_velocities, runtime) 
-        self.action_repeat = 1 # 3
+        self.action_repeat = 6
 
-        self.state_size = self.action_repeat * 1 # 6 --> 1 (only z-position)
-        self.action_low = 0 # 0 --> 400 for takeoff/hover
-        self.action_high = 900 #900
-        self.action_size =  1 # 4 propellers to have the same thurst for takeoff/hover
-        self.max_z_distance = self.sim.upper_bounds[2] - self.sim.lower_bounds[2]
+        self.state_size = self.action_repeat * 6
+        self.action_low = 0
+        self.action_high = 900
+        self.action_size = 4
 
         # Goal
         self.target_pos = target_pos if target_pos is not None else np.array([0., 0., 10.]) 
-        self.max_error_pos = 10.0 # distance unit
-
 
     def get_reward(self):
         """Uses current pose of sim to return reward."""
-        # reward = 1.-.3*(abs(self.sim.pose[:3] - self.target_pos)).sum()
-        reward = 1.-(abs(self.sim.pose[2] - self.target_pos[2])**2)
-        # reward = 1.-.3*(.linalg.norm(self.sim.pose[:3] - self.target_pos)).sum()
-
-        # Scale reward to [-1, 1]
-#         reward = 1 - abs(self.sim.pose[2] - self.target_pos[2]) / self.max_z_distance # [0, 1]
-#         reward = - (z_distance*2) #- abs(self.sim.v[2]) * 0.01
-        # print('z={:3.2f}, z_distance={:3.2f}, reward={:3.2f}'.format(self.sim.pos[2], z_distance, reward))
-
+        reward = 1-abs(self.sim.pose[:3] - self.target_pos).sum()
         return reward
 
     def step(self, rotor_speeds):
         """Uses action to obtain next state, reward, done."""
-        rotor_speeds = rotor_speeds * 4 # put the same thurst for all 4 propellers
         reward = 0
         pose_all = []
         for _ in range(self.action_repeat):
             done = self.sim.next_timestep(rotor_speeds) # update the sim pose and velocities
             reward += self.get_reward() 
-            pose_all.append(self.sim.pose[2]) # z-pos only
-        next_state = np.array(pose_all) #np.concatenate(pose_all)
+            pose_all.append(self.sim.pose)
+        next_state = np.concatenate(pose_all)
         return next_state, reward, done
 
     def reset(self):
         """Reset the sim to start a new episode."""
         self.sim.reset()
-        # state = np.concatenate([self.sim.pose] * self.action_repeat) 
-        state = np.array([self.sim.pose[2]] * self.action_repeat)
+        state = np.concatenate([self.sim.pose] * self.action_repeat) 
         return state
